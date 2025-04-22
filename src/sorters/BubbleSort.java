@@ -32,6 +32,7 @@ public class BubbleSort {
 		}
 		
 		emitter.emit(new SortEvent(EventType.TIMER_STOP));
+		emitter.emit(new SortEvent(EventType.SORT_COMPLETE, ints, -1, -1));
 		return ints;
 	}
 }

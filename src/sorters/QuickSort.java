@@ -17,6 +17,7 @@ public class QuickSort {
 		ints = partition(ints, 0, ints.length, scratch);
 		
 		emitter.emit(new SortEvent(EventType.TIMER_STOP));
+		emitter.emit(new SortEvent(EventType.SORT_COMPLETE, ints, -1, -1));
 		return ints;
 	}
 	

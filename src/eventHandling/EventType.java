@@ -7,5 +7,6 @@ public enum EventType {
 	INITIALIZE_ARRAY,
 	
 	//This should just change the array being displayed between the given elements.
-	UPDATE_ARRAY
+	UPDATE_ARRAY,
+	SORT_COMPLETE
 }
