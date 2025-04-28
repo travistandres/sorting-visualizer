@@ -11,6 +11,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import sorters.BubbleSort;
+import sorters.HeapSort;
+import sorters.MergeSort;
 import sorters.QuickSort;
 import testing.SortEventListener;
 import javax.sound.sampled.*;
@@ -33,7 +35,7 @@ public class Main extends Application {
 
         // Dropdown for selecting sorting algorithm
         ComboBox<String> algorithmSelector = new ComboBox<>();
-        algorithmSelector.getItems().addAll("Bubble Sort", "Quick Sort");
+        algorithmSelector.getItems().addAll("Bubble Sort", "Quick Sort", "Merge Sort", "Heap Sort");
         algorithmSelector.setValue("Bubble Sort");
 
         // Buttons for controlling the visualization
@@ -43,10 +45,15 @@ public class Main extends Application {
         // Event handlers for buttons
         startButton.setOnAction(e -> {
             String selectedAlgorithm = algorithmSelector.getValue();
+            System.out.println("Selected Algorithm: " + selectedAlgorithm); // Debugging
             if (selectedAlgorithm.equals("Bubble Sort")) {
                 startSorting(new BubbleSort());
             } else if (selectedAlgorithm.equals("Quick Sort")) {
                 startSorting(new QuickSort());
+            } else if (selectedAlgorithm.equals("Merge Sort")) {
+                startSorting(new MergeSort());
+            } else if (selectedAlgorithm.equals("Heap Sort")) {
+                startSorting(new HeapSort());
             }
         });
 
@@ -102,14 +109,22 @@ public class Main extends Application {
         };
 
         if (sorter instanceof BubbleSort) {
-            BubbleSort bubbleSort = (BubbleSort) sorter;
-            bubbleSort.emitter.subscribe(listener);
-            new Thread(() -> bubbleSort.sort(array)).start();
-        } else if (sorter instanceof QuickSort) {
-            QuickSort quickSort = (QuickSort) sorter;
-            quickSort.emitter.subscribe(listener);
-            new Thread(() -> quickSort.sort(array)).start();
-        }
+        BubbleSort bubbleSort = (BubbleSort) sorter;
+        bubbleSort.emitter.subscribe(listener);
+        new Thread(() -> bubbleSort.sort(array)).start();
+    } else if (sorter instanceof QuickSort) {
+        QuickSort quickSort = (QuickSort) sorter;
+        quickSort.emitter.subscribe(listener);
+        new Thread(() -> quickSort.sort(array)).start();
+    } else if (sorter instanceof MergeSort) { // Handle MergeSort
+        MergeSort mergeSort = (MergeSort) sorter;
+        mergeSort.emitter.subscribe(listener);
+        new Thread(() -> mergeSort.sort(array)).start();
+    } else if (sorter instanceof HeapSort) { // Handle HeapSort
+        HeapSort heapSort = (HeapSort) sorter;
+        heapSort.emitter.subscribe(listener);
+        new Thread(() -> heapSort.sort(array)).start();
+    }
     }
 
     private int[] generateRandomArray(int size) {
