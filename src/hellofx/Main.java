@@ -6,9 +6,11 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import sorters.BubbleSort;
 import sorters.HeapSort;
@@ -25,90 +27,113 @@ public class Main extends Application {
     private int[] array;
     private GraphicsContext gc;
 
-    @Override
-    public void start(Stage stage) {
-        Canvas canvas = new Canvas(CANVAS_WIDTH, CANVAS_HEIGHT);
-        gc = canvas.getGraphicsContext2D();
+   @Override
+public void start(Stage stage) {
+    Canvas canvas = new Canvas(CANVAS_WIDTH, CANVAS_HEIGHT);
+    gc = canvas.getGraphicsContext2D();
 
+    array = generateRandomArray(ARRAY_SIZE);
+    drawArray(gc, array, -1, -1);
+
+    // Dropdown for selecting sorting algorithm
+    ComboBox<String> algorithmSelector = new ComboBox<>();
+    algorithmSelector.getItems().addAll("Bubble Sort", "Quick Sort", "Merge Sort", "Heap Sort");
+    algorithmSelector.setValue("Bubble Sort");
+
+    // Buttons for controlling the visualization
+    Button startButton = new Button("Start");
+    Button resetButton = new Button("Reset");
+
+    // Labels to display execution time for each algorithm
+    Label bubbleSortTimeLabel = new Label("Bubble Sort Time: N/A");
+    Label quickSortTimeLabel = new Label("Quick Sort Time: N/A");
+    Label mergeSortTimeLabel = new Label("Merge Sort Time: N/A");
+    Label heapSortTimeLabel = new Label("Heap Sort Time: N/A");
+
+    // Event handlers for buttons
+    startButton.setOnAction(e -> {
+        String selectedAlgorithm = algorithmSelector.getValue();
+        System.out.println("Selected Algorithm: " + selectedAlgorithm); // Debugging
+        if (selectedAlgorithm.equals("Bubble Sort")) {
+            startSorting(new BubbleSort(), bubbleSortTimeLabel);
+        } else if (selectedAlgorithm.equals("Quick Sort")) {
+            startSorting(new QuickSort(), quickSortTimeLabel);
+        } else if (selectedAlgorithm.equals("Merge Sort")) {
+            startSorting(new MergeSort(), mergeSortTimeLabel);
+        } else if (selectedAlgorithm.equals("Heap Sort")) {
+            startSorting(new HeapSort(), heapSortTimeLabel);
+        }
+    });
+
+    resetButton.setOnAction(e -> {
         array = generateRandomArray(ARRAY_SIZE);
-        drawArray(gc, array, -1 ,-1);
+        drawArray(gc, array, -1, -1);
+    });
 
-        // Dropdown for selecting sorting algorithm
-        ComboBox<String> algorithmSelector = new ComboBox<>();
-        algorithmSelector.getItems().addAll("Bubble Sort", "Quick Sort", "Merge Sort", "Heap Sort");
-        algorithmSelector.setValue("Bubble Sort");
+    // Layout for controls
+    HBox controls = new HBox(10, algorithmSelector, startButton, resetButton);
+    controls.setStyle("-fx-padding: 10; -fx-alignment: center;");
 
-        // Buttons for controlling the visualization
-        Button startButton = new Button("Start");
-        Button resetButton = new Button("Reset");
+    // Layout for time labels
+    VBox timeLabels = new VBox(10, bubbleSortTimeLabel, quickSortTimeLabel, mergeSortTimeLabel, heapSortTimeLabel);
+    timeLabels.setStyle("-fx-padding: 10; -fx-alignment: center;");
 
-        // Event handlers for buttons
-        startButton.setOnAction(e -> {
-            String selectedAlgorithm = algorithmSelector.getValue();
-            System.out.println("Selected Algorithm: " + selectedAlgorithm); // Debugging
-            if (selectedAlgorithm.equals("Bubble Sort")) {
-                startSorting(new BubbleSort());
-            } else if (selectedAlgorithm.equals("Quick Sort")) {
-                startSorting(new QuickSort());
-            } else if (selectedAlgorithm.equals("Merge Sort")) {
-                startSorting(new MergeSort());
-            } else if (selectedAlgorithm.equals("Heap Sort")) {
-                startSorting(new HeapSort());
+    BorderPane root = new BorderPane();
+    root.setCenter(new StackPane(canvas));
+    root.setBottom(controls);
+    root.setRight(timeLabels);
+
+    Scene scene = new Scene(root, CANVAS_WIDTH + 200, CANVAS_HEIGHT + 50);
+    stage.setScene(scene);
+    stage.setTitle("Sorting Visualizer");
+    stage.show();
+}
+
+private void startSorting(Object sorter, Label timeLabel) {
+    final SortEventListener listener = new SortEventListener() { // Declare listener as final
+        long startTime = 0;
+
+        @Override
+        public void onEvent(eventHandling.SortEvent event) {
+            if (event.getType() == eventHandling.EventType.TIMER_START) {
+                startTime = System.nanoTime(); // Record start time
             }
-        });
 
-        resetButton.setOnAction(e -> {
-            array = generateRandomArray(ARRAY_SIZE);
-            drawArray(gc, array, -1, -1);
-        });
+            if (event.getType() == eventHandling.EventType.UPDATE_ARRAY) {
+                int head = event.getHead();
+                int tail = event.getTail();
+                drawArray(gc, event.getArray(), head, tail);
 
-        // Layout for controls
-        HBox controls = new HBox(10, algorithmSelector, startButton, resetButton);
-        controls.setStyle("-fx-padding: 10; -fx-alignment: center;");
-
-        BorderPane root = new BorderPane();
-        root.setCenter(new StackPane(canvas));
-        root.setBottom(controls);
-
-        Scene scene = new Scene(root, CANVAS_WIDTH, CANVAS_HEIGHT + 50);
-        stage.setScene(scene);
-        stage.setTitle("Sorting Visualizer");
-        stage.show();
-    }
-
-    private void startSorting(Object sorter) {
-        SortEventListener listener = new SortEventListener() {
-            @Override
-            public void onEvent(eventHandling.SortEvent event) {
-                if (event.getType() == eventHandling.EventType.UPDATE_ARRAY) {
-                    int head = event.getHead();
-                    int tail = event.getTail();
-                    drawArray(gc, event.getArray(), head, tail);
-            
-                    int[] arr = event.getArray();
-                    if (head >= 0 && head < arr.length) {
-                        int value = arr[head];
-                        double freq = mapValueToFrequency(value, 0, CANVAS_HEIGHT, 200, 1000);
-                        new Thread(() -> playTone(freq, 30)).start();
-                    }
-            
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                int[] arr = event.getArray();
+                if (head >= 0 && head < arr.length) {
+                    int value = arr[head];
+                    double freq = mapValueToFrequency(value, 0, CANVAS_HEIGHT, 200, 1000);
+                    new Thread(() -> playTone(freq, 30)).start();
                 }
-            
-                // 👇 Trigger melody after sorting is finished
-                if (event.getType() == eventHandling.EventType.SORT_COMPLETE) {
-                    new Thread(() -> playFinalMelody(event.getArray(), gc)).start();
+
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-                
             }
-            
-        };
 
-        if (sorter instanceof BubbleSort) {
+            if (event.getType() == eventHandling.EventType.SORT_COMPLETE) {
+                long endTime = System.nanoTime(); // Record end time
+                long executionTime = endTime - startTime;
+
+                new Thread(() -> playFinalMelody(event.getArray(), gc)).start();
+
+                // Update the time label on the JavaFX Application Thread
+                javafx.application.Platform.runLater(() -> {
+                    String algorithmName = timeLabel.getText().split(":")[0]; // Extract algorithm name
+                    timeLabel.setText(algorithmName + ": " + String.format("%.2f", executionTime / 1_000_000_000.0) + " seconds");
+                });
+            }
+        }
+    };
+
+    if (sorter instanceof BubbleSort) {
         BubbleSort bubbleSort = (BubbleSort) sorter;
         bubbleSort.emitter.subscribe(listener);
         new Thread(() -> bubbleSort.sort(array)).start();
@@ -116,16 +141,16 @@ public class Main extends Application {
         QuickSort quickSort = (QuickSort) sorter;
         quickSort.emitter.subscribe(listener);
         new Thread(() -> quickSort.sort(array)).start();
-    } else if (sorter instanceof MergeSort) { // Handle MergeSort
+    } else if (sorter instanceof MergeSort) {
         MergeSort mergeSort = (MergeSort) sorter;
         mergeSort.emitter.subscribe(listener);
         new Thread(() -> mergeSort.sort(array)).start();
-    } else if (sorter instanceof HeapSort) { // Handle HeapSort
+    } else if (sorter instanceof HeapSort) {
         HeapSort heapSort = (HeapSort) sorter;
         heapSort.emitter.subscribe(listener);
         new Thread(() -> heapSort.sort(array)).start();
     }
-    }
+}
 
     private int[] generateRandomArray(int size) {
         int[] array = new int[size];
@@ -139,17 +164,22 @@ public class Main extends Application {
         gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         double barWidth = (double) CANVAS_WIDTH / array.length;
     
+        // Clamp tail to the array length
+        if (tail > array.length) {
+            tail = array.length;
+        }
+    
         for (int i = 0; i < array.length; i++) {
             double x = i * barWidth;
             double y = CANVAS_HEIGHT - array[i];
             double height = array[i];
     
-            // Highlight the bars being sorted
-            if (i >= head && i < tail) {
-                gc.setFill(javafx.scene.paint.Color.RED); // Highlighted bar color
+            if (i >= head && i <= tail && tail < array.length) {
+                gc.setFill(javafx.scene.paint.Color.RED);
             } else {
-                gc.setFill(javafx.scene.paint.Color.BLUE); // Default bar color
+                gc.setFill(javafx.scene.paint.Color.BLUE);
             }
+            
     
             gc.fillRect(x, y, barWidth, height);
         }
@@ -193,7 +223,6 @@ public class Main extends Application {
                 indices[j] = i + j;
             }
     
-            // Visual highlight
             javafx.application.Platform.runLater(() -> {
                 gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     
@@ -220,7 +249,7 @@ public class Main extends Application {
                 }
             });
     
-            // Play tones for current pointers
+            // Play tones
             for (int idx : indices) {
                 if (idx < array.length) {
                     double freq = mapValueToFrequency(array[idx], 0, CANVAS_HEIGHT, 200, 1000);
@@ -229,11 +258,15 @@ public class Main extends Application {
             }
     
             try {
-                Thread.sleep(25); // Controls speed of travel
+                Thread.sleep(25);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+    
+        javafx.application.Platform.runLater(() -> {
+            drawArray(gc, array, -1, -1);
+        });
     }
     
     
