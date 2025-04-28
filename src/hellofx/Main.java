@@ -27,6 +27,9 @@ public class Main extends Application {
     private int[] array;
     private GraphicsContext gc;
 
+    // Declare comparisonCountLabel as a class-level variable
+    private Label comparisonCountLabel;
+
    @Override
 public void start(Stage stage) {
     Canvas canvas = new Canvas(CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -50,6 +53,8 @@ public void start(Stage stage) {
     Label mergeSortTimeLabel = new Label("Merge Sort Time: N/A");
     Label heapSortTimeLabel = new Label("Heap Sort Time: N/A");
 
+    comparisonCountLabel = new Label("Comparisons: 0");
+
     // Event handlers for buttons
     startButton.setOnAction(e -> {
         String selectedAlgorithm = algorithmSelector.getValue();
@@ -68,6 +73,7 @@ public void start(Stage stage) {
     resetButton.setOnAction(e -> {
         array = generateRandomArray(ARRAY_SIZE);
         drawArray(gc, array, -1, -1);
+        comparisonCountLabel.setText("Comparisons: 0");
     });
 
     // Layout for controls
@@ -75,8 +81,10 @@ public void start(Stage stage) {
     controls.setStyle("-fx-padding: 10; -fx-alignment: center;");
 
     // Layout for time labels
-    VBox timeLabels = new VBox(10, bubbleSortTimeLabel, quickSortTimeLabel, mergeSortTimeLabel, heapSortTimeLabel);
+    VBox timeLabels = new VBox(10, bubbleSortTimeLabel, quickSortTimeLabel, mergeSortTimeLabel, heapSortTimeLabel, comparisonCountLabel);
     timeLabels.setStyle("-fx-padding: 10; -fx-alignment: center;");
+
+    
 
     BorderPane root = new BorderPane();
     root.setCenter(new StackPane(canvas));
@@ -92,38 +100,47 @@ public void start(Stage stage) {
 private void startSorting(Object sorter, Label timeLabel) {
     final SortEventListener listener = new SortEventListener() { // Declare listener as final
         long startTime = 0;
-
+        int comparisonCount = 0; // Track the number of comparisons
+    
         @Override
         public void onEvent(eventHandling.SortEvent event) {
             if (event.getType() == eventHandling.EventType.TIMER_START) {
                 startTime = System.nanoTime(); // Record start time
+                comparisonCount = 0; // Reset comparison count
             }
-
+    
             if (event.getType() == eventHandling.EventType.UPDATE_ARRAY) {
                 int head = event.getHead();
                 int tail = event.getTail();
                 drawArray(gc, event.getArray(), head, tail);
-
+    
                 int[] arr = event.getArray();
                 if (head >= 0 && head < arr.length) {
                     int value = arr[head];
                     double freq = mapValueToFrequency(value, 0, CANVAS_HEIGHT, 200, 1000);
                     new Thread(() -> playTone(freq, 30)).start();
                 }
-
+    
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-
+    
+            if (event.getType() == eventHandling.EventType.INCREMENT_COMPARISONS) {
+                comparisonCount++; // Increment the comparison count
+                javafx.application.Platform.runLater(() -> {
+                    comparisonCountLabel.setText("Comparisons: " + comparisonCount);
+                });
+            }
+    
             if (event.getType() == eventHandling.EventType.SORT_COMPLETE) {
                 long endTime = System.nanoTime(); // Record end time
                 long executionTime = endTime - startTime;
-
+    
                 new Thread(() -> playFinalMelody(event.getArray(), gc)).start();
-
+    
                 // Update the time label on the JavaFX Application Thread
                 javafx.application.Platform.runLater(() -> {
                     String algorithmName = timeLabel.getText().split(":")[0]; // Extract algorithm name
@@ -132,7 +149,6 @@ private void startSorting(Object sorter, Label timeLabel) {
             }
         }
     };
-
     if (sorter instanceof BubbleSort) {
         BubbleSort bubbleSort = (BubbleSort) sorter;
         bubbleSort.emitter.subscribe(listener);
